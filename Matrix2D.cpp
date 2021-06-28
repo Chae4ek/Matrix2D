@@ -22,20 +22,19 @@ class Matrix2D {
 
   Matrix2D(Matrix2D<T>&&) = default;
 
-  Matrix2D(std::size_t strings_count, std::size_t columns_count)
-      : __strings_count(strings_count),
-        __columns_count(columns_count),
-        __matrix(new std::vector<std::vector<T>>(__strings_count)) {
-    for (int i = 0; i < strings_count; ++i) (*__matrix)[i].reserve(__columns_count);
-  }
-
   /**
    * Fills the main diagonal with the filler and other cells with the T(0)
+   *
+   * @param strings_count must be > 0
+   * @param columns_count must be > 0
+   * @throw std::invalid_argument if the strings_count or the columns_count <= 0
    */
-  Matrix2D(std::size_t strings_count, std::size_t columns_count, const T& filler)
+  Matrix2D(std::size_t strings_count, std::size_t columns_count, const T& filler = 0)
       : __strings_count(strings_count),
         __columns_count(columns_count),
         __matrix(new std::vector<std::vector<T>>(__strings_count)) {
+    if (strings_count <= 0 || columns_count <= 0)
+      throw std::invalid_argument("error: number of strings and columns must be > 0");
     const T zero(0);
     for (int i = 0; i < strings_count; ++i) {
       (*__matrix)[i].reserve(__columns_count);
@@ -46,10 +45,12 @@ class Matrix2D {
   ~Matrix2D() = default;
 
   /**
+   * @throw std::invalid_argument if the matrix number of strings != the number of columns
    * @return the determinant of this matrix
    */
   T det() {
-    if (__strings_count != __columns_count) throw;
+    if (__strings_count != __columns_count)
+      throw std::invalid_argument("error: determinant must have the same number of rows and columns");
 
     Matrix2D<T> matrix(*this);
     const T zero(0);
@@ -81,9 +82,14 @@ class Matrix2D {
 
   /**
    * Raises this matrix to the power of the degree
+   *
+   * @param degree must be >= 0
+   * @throw std::invalid_argument if the matrix number of strings != the number of columns or the degree < 0
    */
   void pow(int degree) {
-    if (degree < 0 || __strings_count != __columns_count) throw;
+    if (degree < 0 || __strings_count != __columns_count)
+      throw std::invalid_argument(
+          "error: number of strings and columns must be > 0 and degree of matrix must be >= 0");
 
     Matrix2D<T> temp(__strings_count, __columns_count, 1);
 
@@ -119,7 +125,7 @@ class Matrix2D {
   /**
    * Must be invoked at the beginning of any simplex method
    */
-  void start_simplex_method() {
+  void start_simplex_method() noexcept {
     __columns_simplex_variables = new SimplexVar[__columns_count];
     __strings_simplex_variables = new SimplexVar[__strings_count];
     for (int i = 0; i < __columns_count; ++i) __columns_simplex_variables[i].set('x', i);
@@ -129,7 +135,7 @@ class Matrix2D {
   /**
    * Must be invoked at the end of any simplex method
    */
-  void end_simplex_method() {
+  void end_simplex_method() noexcept {
     delete[] __strings_simplex_variables;
     delete[] __columns_simplex_variables;
     __strings_simplex_variables = nullptr;
@@ -162,7 +168,7 @@ class Matrix2D {
    * @return 0 if f_max == matrix[0][0]
    *        -1 if f_max is undefined
    */
-  int simplex_method_next_iterate() {
+  int simplex_method_next_iterate() noexcept {
     const T zero(0);
 
     // step 1
@@ -233,7 +239,7 @@ class Matrix2D {
    * Like the simplex method above, but b1, b2, ..., bm can be negative.
    * One of c1, c2, ..., cn must be negative!
    */
-  int dual_simplex_method_next_iterate() {
+  int dual_simplex_method_next_iterate() noexcept {
     const T zero(0);
 
     // step 1
@@ -304,7 +310,8 @@ class Matrix2D {
   }
 
   Matrix2D<T>& operator*=(const Matrix2D<T>& right) {
-    if (this->__columns_count != right.__strings_count) throw;
+    if (this->__columns_count != right.__strings_count)
+      throw std::invalid_argument("error: columns count are not equal string count of right matrix");
 
     Matrix2D<T> temp(this->__strings_count, right.__columns_count, 0);
 
@@ -319,7 +326,7 @@ class Matrix2D {
     return *this;
   }
 
-  Matrix2D<T>& operator*=(const T& right) {
+  Matrix2D<T>& operator*=(const T& right) noexcept {
     for (int i = 0; i < __strings_count; ++i)
       for (int j = 0; j < __columns_count; ++j) (*__matrix)[i][j] *= right;
     return *this;
@@ -329,7 +336,7 @@ class Matrix2D {
     return Matrix2D<T>(*this) *= right;
   }
 
-  Matrix2D<T> operator*(const T& right) const {
+  Matrix2D<T> operator*(const T& right) const noexcept {
     return Matrix2D<T>(*this) *= right;
   }
 
@@ -344,7 +351,7 @@ class Matrix2D {
 
   Matrix2D<T>& operator=(Matrix2D<T>&&) = default;
 
-  Matrix2D<T>& operator=(const T& right) {
+  Matrix2D<T>& operator=(const T& right) noexcept {
     for (int i = 0; i < __strings_count; ++i)
       for (int j = 0; j < __columns_count; ++j) (*__matrix)[i][j] = right;
     return *this;
@@ -358,7 +365,7 @@ class Matrix2D {
     return *this;
   }
 
-  Matrix2D<T>& operator+=(const T& right) {
+  Matrix2D<T>& operator+=(const T& right) noexcept {
     for (int i = 0; i < __strings_count; ++i)
       for (int j = 0; j < __columns_count; ++j) (*__matrix)[i][j] += right;
     return *this;
@@ -368,15 +375,15 @@ class Matrix2D {
     return Matrix2D<T>(*this) += right;
   }
 
-  Matrix2D<T> operator+(const T& right) const {
+  Matrix2D<T> operator+(const T& right) const noexcept {
     return Matrix2D<T>(*this) += right;
   }
 
-  Matrix2D<T> operator+() {
+  Matrix2D<T> operator+() noexcept {
     return Matrix2D<T>(*this);
   }
 
-  Matrix2D<T> operator-() {
+  Matrix2D<T> operator-() noexcept {
     Matrix2D<T> temp(*this);
     for (int i = 0; i < __strings_count; ++i)
       for (int j = 0; j < __columns_count; ++j) (*temp.__matrix)[i][j] = -(*temp.__matrix)[i][j];
@@ -387,7 +394,7 @@ class Matrix2D {
     return *(this += -right);
   }
 
-  Matrix2D<T>& operator-=(const T& right) {
+  Matrix2D<T>& operator-=(const T& right) noexcept {
     return *(this += -right);
   }
 
@@ -395,11 +402,11 @@ class Matrix2D {
     return Matrix2D<T>(*this) -= right;
   }
 
-  Matrix2D<T> operator-(const T& right) const {
+  Matrix2D<T> operator-(const T& right) const noexcept {
     return Matrix2D<T>(*this) -= right;
   }
 
-  bool operator==(const Matrix2D<T>& right) const {
+  bool operator==(const Matrix2D<T>& right) const noexcept {
     if (this->__strings_count != right.__strings_count || this->__columns_count != right.__columns_count)
       return false;
     for (int i = 0; i < this->__strings_count; ++i)
@@ -408,22 +415,22 @@ class Matrix2D {
     return true;
   }
 
-  bool operator==(const T& right) const {
+  bool operator==(const T& right) const noexcept {
     for (int i = 0; i < __strings_count; ++i)
       for (int j = 0; j < __columns_count; ++j)
         if ((*__matrix)[i][j] != right) return false;
     return true;
   }
 
-  bool operator!=(const Matrix2D<T>& right) const {
+  bool operator!=(const Matrix2D<T>& right) const noexcept {
     return !(*this == right);
   }
 
-  bool operator!=(const T& right) const {
+  bool operator!=(const T& right) const noexcept {
     return !(*this == right);
   }
 
-  operator bool() const {
+  operator bool() const noexcept {
     const T zero = 0;
     for (int i = 0; i < __strings_count; ++i)
       for (int j = 0; j < __columns_count; ++j)
@@ -431,7 +438,7 @@ class Matrix2D {
     return false;
   }
 
-  std::vector<T>& operator[](int i) {
+  std::vector<T>& operator[](int i) noexcept {
     return (*__matrix)[i];
   }
 
@@ -476,10 +483,10 @@ class Matrix2D {
 class Rational {
  private:
   long long n = 0;
-  long long m = 1;
+  long long m = 1;  // must be > 0
 
   /**
-   * Raises A to the power of N
+   * Raises 'a' to the power of 'n'
    */
   inline constexpr long long __pow(long long a, int n) const noexcept {
     long long res = 1;
@@ -494,14 +501,14 @@ class Rational {
   /**
    * Find 'x' and 'y' for the equation: (a*x + b*y = gcd)
    *
-   * @param a must be >= 0
-   * @param b must be >= 0
    * @return the greatest common divisor
    */
   inline constexpr long long __gcd_extended(long long a,
                                             long long b,
                                             long long& x,
                                             long long& y) const noexcept {
+    if (a < 0) a = llabs(a);
+    if (b < 0) b = llabs(b);
     x = 1;
     y = 0;
     long long xx = 0, yy = 1;
@@ -518,11 +525,11 @@ class Rational {
   }
 
   /**
-   * @param a must be >= 0
-   * @param b must be >= 0
    * @return the greatest common divisor
    */
   inline constexpr long long __gcd(long long a, long long b) const noexcept {
+    if (a < 0) a = llabs(a);
+    if (b < 0) b = llabs(b);
     while (b) {
       std::swap(a, b);
       b %= a;
@@ -532,22 +539,28 @@ class Rational {
 
   /**
    * Reduces the fraction n/m
+   *
+   * @param m must be != 0
    */
-  inline constexpr void __reduce(long long* n, long long* m) const {
-    long long gcd = *n < 0 ? __gcd(-*n, *m) : __gcd(*n, *m);
+  inline constexpr void __reduce(long long* n, long long* m) const noexcept {
+    long long gcd = __gcd(*m, *n);
     *n /= gcd;
     *m /= gcd;
   }
 
  public:
   /**
-   * @param m must be > 0
+   * Creates a fraction n/m
+   *
+   * @param m must be != 0
+   * @throw std::invalid_argument if m == 0
    */
-  Rational(long long n = 0, long long m = 1, bool reduce = true) {
-    if (m <= 0) throw std::invalid_argument("error: n/m where m<=0");
+  Rational(long long n = 0, long long m = 1) {
+    if (m == 0) throw std::invalid_argument("error: n/m where m==0");
+    if (m < 0) n = -n, m = -m;
     this->n = n;
     this->m = m;
-    if (reduce) __reduce(&this->n, &this->m);
+    __reduce(&this->n, &this->m);
   }
 
   Rational(const Rational&) = default;
@@ -557,35 +570,38 @@ class Rational {
   /**
    * @return the numerator
    */
-  inline constexpr long long get_n() const {
+  inline constexpr long long get_n() const noexcept {
     return n;
   }
 
   /**
    * @return the denominator
    */
-  inline constexpr long long get_m() const {
+  inline constexpr long long get_m() const noexcept {
     return m;
   }
 
   /**
    * @return the value of the fraction n/m
    */
-  inline constexpr double get_value() const {
+  inline constexpr double get_value() const noexcept {
     return static_cast<double>(n) / static_cast<double>(m);
   }
 
-  inline Rational operator*(const Rational& r) const {
+  inline Rational operator*(const Rational& r) const noexcept {
     long long a = r.n;
     long long b = r.m;
     long long c = n;
     long long d = m;
     __reduce(&a, &d);
     __reduce(&c, &b);
-    return Rational(std::move(a * c), std::move(b * d), false);
+    Rational res;
+    res.n = std::move(a * c);
+    res.m = std::move(b * d);
+    return res;
   }
 
-  inline constexpr Rational& operator*=(const Rational& r) {
+  inline constexpr Rational& operator*=(const Rational& r) noexcept {
     long long a = r.n;
     long long b = r.m;
     __reduce(&a, &m);
@@ -596,6 +612,7 @@ class Rational {
   }
 
   inline Rational operator/(const Rational& r) const {
+    if (r.n == 0) throw std::invalid_argument("error: denominator fraction == 0");
     long long a = r.m;
     long long b = r.n;
     if (b < 0) a = -a, b = -b;
@@ -603,10 +620,14 @@ class Rational {
     long long d = m;
     __reduce(&a, &d);
     __reduce(&c, &b);
-    return Rational(std::move(a * c), std::move(b * d), false);
+    Rational res;
+    res.n = std::move(a * c);
+    res.m = std::move(b * d);
+    return res;
   }
 
   inline constexpr Rational& operator/=(const Rational& r) {
+    if (r.n == 0) throw std::invalid_argument("error: denominator fraction == 0");
     long long a = r.m;
     long long b = r.n;
     if (b < 0) a = -a, b = -b;
@@ -617,12 +638,12 @@ class Rational {
     return *this;
   }
 
-  inline Rational operator+(const Rational& r) const {
+  inline Rational operator+(const Rational& r) const noexcept {
     long long lcm = m * r.m / __gcd(m, r.m);
     return Rational(n * lcm / m + r.n * lcm / r.m, lcm);
   }
 
-  inline constexpr Rational& operator+=(const Rational& r) {
+  inline constexpr Rational& operator+=(const Rational& r) noexcept {
     long long lcm = m * r.m / __gcd(m, r.m);
     n = n * lcm / m + r.n * lcm / r.m;
     m = lcm;
@@ -630,20 +651,20 @@ class Rational {
     return *this;
   }
 
-  inline Rational operator-() const {
+  inline Rational operator-() const noexcept {
     return Rational(-n, m);
   }
 
-  inline Rational operator+() const {
+  inline Rational operator+() const noexcept {
     return Rational(*this);
   }
 
-  inline Rational operator-(const Rational& r) const {
+  inline Rational operator-(const Rational& r) const noexcept {
     long long lcm = m * r.m / __gcd(m, r.m);
     return Rational(n * lcm / m - r.n * lcm / r.m, lcm);
   }
 
-  inline constexpr Rational& operator-=(const Rational& r) {
+  inline constexpr Rational& operator-=(const Rational& r) noexcept {
     long long lcm = m * r.m / __gcd(m, r.m);
     n = n * lcm / m - r.n * lcm / r.m;
     m = lcm;
@@ -651,11 +672,11 @@ class Rational {
     return *this;
   }
 
-  inline constexpr bool operator==(const Rational& r) const {
+  inline constexpr bool operator==(const Rational& r) const noexcept {
     return n == r.n && m == r.m;
   }
 
-  inline constexpr bool operator!=(const Rational& r) const {
+  inline constexpr bool operator!=(const Rational& r) const noexcept {
     return !(*this == r);
   }
 
@@ -663,20 +684,24 @@ class Rational {
 
   inline Rational& operator=(Rational&& r) = default;
 
-  inline bool operator<(const Rational& r) const {
-    return (*this - r).n < 0;
+  inline bool operator<(const Rational& r) const noexcept {
+    long long lcm = m * r.m / __gcd(m, r.m);
+    return n * lcm / m < r.n * lcm / r.m;
   }
 
-  inline bool operator<=(const Rational& r) const {
-    return (*this - r).n <= 0;
+  inline bool operator<=(const Rational& r) const noexcept {
+    long long lcm = m * r.m / __gcd(m, r.m);
+    return n * lcm / m <= r.n * lcm / r.m;
   }
 
-  inline bool operator>(const Rational& r) const {
-    return (*this - r).n > 0;
+  inline bool operator>(const Rational& r) const noexcept {
+    long long lcm = m * r.m / __gcd(m, r.m);
+    return n * lcm / m > r.n * lcm / r.m;
   }
 
-  inline bool operator>=(const Rational& r) const {
-    return (*this - r).n >= 0;
+  inline bool operator>=(const Rational& r) const noexcept {
+    long long lcm = m * r.m / __gcd(m, r.m);
+    return n * lcm / m >= r.n * lcm / r.m;
   }
 
   friend std::istream& operator>>(std::istream& in, Rational& r) {
